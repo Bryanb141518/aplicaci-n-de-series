@@ -4,10 +4,11 @@ def info():
     1 = agregar una serie
     2 = buscar serie por calificacion
     3 = buscar serie por nombre
-    4 = mostrar todas las serie vistas
-    5 = lista de series que quiero ver
-    6 = eliminar serie
-    7 = salir"""
+    4 = buscar serie por genero
+    5 = mostrar todas las serie vistas
+    6 = lista de series que quiero ver
+    7 = eliminar serie
+    8 = salir"""
 
 """se crea un def para la validacion solo print que muestran las opcciones a escoger
    primero se cre un def solo con la informacion el segundo print dentro del while es el que 
@@ -17,12 +18,13 @@ def menu_de_opcciones():
     while True:
         print("        SISTEMA DE CALIFICACION Y ALAMACENAMIENTO DE SERIES Y SU PUNTUACION")
         print("1. Agregar una serie")
-        print("2. Buscar serie por calificacion")
-        print("3. buscar serie por nombre")
-        print("4. Mostrar todas las serie vistas ")
-        print("5. lista de serie que quiero ver")
-        print("6. Eliminar serie ")
-        print("7. Salir")
+        print("2. Buscar serie guardada por calificacion")
+        print("3. buscar serie guardada por nombre")
+        print("4. buscar  serie guardada por genero")
+        print("5. Mostrar todas las serie vistas ")
+        print("6. lista de serie que quiero ver")
+        print("7. Eliminar serie ")
+        print("8. Salir")
 
 # validacion de el primer input del usuario
         try:
@@ -33,21 +35,31 @@ def menu_de_opcciones():
                 continue
             seleccion = int(seleccion)
 
-            if seleccion < 1 or seleccion > 7:
-                print("error debe ingresar un numero entre 1 y 7")
+            if seleccion < 1 or seleccion > 8:
+                print("error debe ingresar un numero entre 1 y 8")
                 continue
             opciones = {
                 1: "Agregar una serie",
-                2: "Buscar serie por calificacion",
-                3: "Buscar serie por nombre",
-                4: "Mostrar todas las serie vistas",
-                5: "Lista de serie que quiero ver",
-                6: "Eliminar serie ",
-                7: lambda: print("saliendo del programa") # se hace con lambda para no tener que crear un def para salir
+                2: "Buscar serie guardada por calificacion",
+                3: "Buscar serie guardada por nombre",
+                4: "buscar serie guardada por genero",
+                5: "Mostrar todas las serie vistas",
+                6: "Lista de serie que quiero ver",
+                7: "Eliminar serie ",
+                8: lambda: print("saliendo del programa") # se hace con lambda para no tener que crear un def para salir
 
             }
-
-            if seleccion == 7:
+            if seleccion == 1:
+                Agregar_serie()
+            elif seleccion == 2:
+                Buscar_serie()
+            elif seleccion == 3:
+                Buscar_serie()
+            elif seleccion == 4:
+                Buscar_serie()
+            elif seleccion == 5:
+                Mostrar_series()
+            elif seleccion == 8:
                 break
         except ValueError:
             print("error entrada invalida")
@@ -56,7 +68,8 @@ def menu_de_opcciones():
 
 
 lista_de_serie  = []
-series_vistas = []
+series_vistas = {}
+ver_mas_tarde = {}
 
 def Agregar_serie():
     while True:
@@ -69,16 +82,159 @@ def Agregar_serie():
             print("Error: el nombre no puede tener números")
             continue
 #    aca validamso que no se repita el nombre de la serie cuando la ingres eel usuario
-        if not nombre in lista_de_serie:
+        if  nombre in series_vistas:
             print("ya tienes esa serie en vistas no la puedes repetir")
             continue
+# validacion de opcciones para gurdar en ver mas tarde o guardar en vista
         try:
-            calificacion = float(input("ingrese la calificacion de la serie un numero de 1 al 10"
-                                       "donde de 1 a 4 es muy mala de 4 a 8 es regual y mas de 8 es exelente"))
-        except ValueError:
-            print("error entrada invalida ingresa un numero entre 1 y 10")
-            continue
+            opccion = int(input("ingrese una opccion (1 o 2) donde 1 es para guardar la serie en vistas y dos es para guardar en ver mas tarde"))
+            if opccion >=1 and opccion <=2:
 
+                if opccion == 1:
+                    genero = input("ingrese el genero de la serie").strip()
+                    if  not genero:
+                        print("error: el genero no puede ir vacio")
+                        continue
+                    try:
+                       calificacion = float(input("ingrese la calificacion de la serie un numero de 1 al 10"
+                                               "donde de 1 a 4 es muy mala de 4 a 8 es regual y mas de 8 es exelente"))
+                       if calificacion < 1 or calificacion > 10:
+                           print("debe ingresar un numero entre 1 y 10")
+                           continue
+
+                    except ValueError:
+                        print("error entrada invalida ingresa un numero entre 1 y 10")
+                        continue
+
+                    series_vistas.append({"nombre": nombre, "calificacion": calificacion, "genero": genero})
+                    print(f"✅ Serie '{nombre}' agregada a Vistas con calificación {calificacion}")
+
+                elif opccion == 2:
+                    genero = input("ingrese la genero de la serie").strip()
+                    if not genero:
+                        print("error: el genero no puede ir vacio")
+                        continue
+                    ver_mas_tarde.append({"nombre": nombre ,"genero": genero})
+                    print(f"✅ Serie '{nombre}' agregada a Ver más tarde")
+
+                else:
+                    print("error invalido ingrese una opccion entre 1 y 2")
+
+        except ValueError:
+            print("error entrada ingrese una opccion entre 1 y 2")
+
+def Buscar_serie():
+    while True:
+
+        print("ingrese una de las opcciones de busqeuda que tenemos 1 es por calificacion 2 es por nombre 3 es por genero ")
+        try:
+
+            ingreso = int(input("ingrese una opccion entre 1 y 3"))
+
+            if not ingreso:
+                print("error invalido no puede esta vacio ")
+                continue
+
+            if ingreso < 1 or ingreso > 3:
+                print("error invalido ingrese una opccion entre 1 y 3")
+                continue
+
+            if ingreso == 1:
+                genero = int(input("ingrese la calificacion de la serie").strip())
+
+                if not genero:
+                    print("error: el genero no puede ir vacio")
+                    continue
+
+                if genero <1 or genero > 10:
+                    print("error invalido ingrese una calificacion entre 1 y 10")
+                    continue
+
+                encontradas = []
+
+                for serie in series_vistas:
+                    if  serie["calificacion"] == genero:
+                        encontradas.append(serie)
+
+                if encontradas:
+
+                    print("series encontradas con esta calificacion")
+                    for s in encontradas:
+                        print(f"- {s['nombre']} ({s['genero']}) ⭐ {s['calificacion']}")
+
+                else:
+                    print("series no encontrada con esta calificacion")
+
+
+            elif ingreso == 2:
+
+                nombre = input("ingrese el nombre de la serie")
+
+                if not nombre:
+                    print("error: el nombre no puede ser vacio")
+                    continue
+
+                encontradas = []
+
+                for n in series_vistas:
+                    if  n["nombre"] == nombre:
+                        encontradas.append(n)
+
+                if encontradas:
+                    print("series encontradas con este nombre")
+                    for s in encontradas:
+                        print(f"- {s['nombre']} ({s['genero']}) ⭐ {s['calificacion']}")
+
+                else:
+                    print("series no encontrada con ese nombre")
+
+
+
+            elif ingreso == 3:
+                print("ingrese el genero de la serie que esta buscando")
+
+                genero = input("ingrese el genero de la serie").strip()
+
+                if not genero:
+                    print("error: el genero no puede ir vacio")
+                    continue
+
+                encontradas = []
+                for g in series_vistas:
+                    if g["genero"] == genero:
+                        encontradas.append(g)
+
+                if encontradas:
+                    print("series encontradas con ese genero")
+                    for s in encontradas:
+                        print(f"- {s['nombre']} ({s['genero']}) ⭐ {s['calificacion']}")
+
+                else:
+                    print("series no encontrada con ese genero")
+
+        except ValueError:
+            print("error entrada ingrese una opccion entre 1 y 3")
+
+
+
+def Mostrar_series():
+    while True:
+        print("ingrese una de las dos opcciones 1 para ver todas las series vistas y 2 para ver todas las series guardadas para ver mas tarde")
+        try:
+            ingreso = int(input("ingrese una opccion entre 1 y 2"))
+            if not ingreso:
+                print("error invalido no puede esta vacio el campo")
+                continue
+            if ingreso == 1:
+                for series in series_vistas:
+                    print(f"- {series['nombre']} ({series['genero']}) ⭐ {series['calificacion']}")
+            elif ingreso == 2:
+                for series in ver_mas_tarde:
+                    print(f"- {series['nombre']} ({series['genero']})")
+            else:
+                print("error invalido ")
+        except ValueError:
+            print("error entrada ingrese una opccion entre 1 y 2")
 
 
 
