@@ -6,9 +6,10 @@ def info():
     3 = buscar serie por nombre
     4 = buscar serie por genero
     5 = mostrar todas las serie vistas
-    6 = lista de series que quiero ver
-    7 = eliminar serie
-    8 = salir"""
+    6 = guardar una serie para ver despues
+    7 = lista de series pendientes
+    8 = eliminar serie
+    9 = salir"""
 
 """se crea un def para la validacion solo print que muestran las opcciones a escoger
    primero se cre un def solo con la informacion el segundo print dentro del while es el que 
@@ -22,21 +23,22 @@ def menu_de_opcciones():
         print("3. buscar serie guardada por nombre")
         print("4. buscar  serie guardada por genero")
         print("5. Mostrar todas las serie vistas ")
-        print("6. lista de serie que quiero ver")
-        print("7. Eliminar serie ")
-        print("8. Salir")
+        print("6. guardar una serie para ver despues")
+        print("7. lista de series pendientes")
+        print("8. eliminar serie")
+        print("9. Salir")
 
 # validacion de el primer input del usuario
         try:
-            seleccion = input("ingrese una opccion entre (1-5)").strip() # el strip lo que hace es eliminar espacios
+            seleccion = input("ingrese una opccion entre (1-9)").strip() # el strip lo que hace es eliminar espacios
 
             if not seleccion.isdigit(): # validar que solo tenga numeros del 0 al 9
                 print("error debe ingresar un numero")
                 continue
             seleccion = int(seleccion)
 
-            if seleccion < 1 or seleccion > 8:
-                print("error debe ingresar un numero entre 1 y 8")
+            if seleccion < 1 or seleccion > 9:
+                print("error debe ingresar un numero entre 1 y 9")
                 continue
             opciones = {
                 1: "Agregar una serie",
@@ -44,9 +46,10 @@ def menu_de_opcciones():
                 3: "Buscar serie guardada por nombre",
                 4: "buscar serie guardada por genero",
                 5: "Mostrar todas las serie vistas",
-                6: "Lista de serie que quiero ver",
-                7: "Eliminar serie ",
-                8: lambda: print("saliendo del programa") # se hace con lambda para no tener que crear un def para salir
+                6: "guardar una serie para ver despues",
+                7: "lista de series pendientes",
+                8: "Eliminar serie ",
+                9: lambda: print("saliendo del programa") # se hace con lambda para no tener que crear un def para salir
 
             }
             if seleccion == 1:
@@ -59,7 +62,13 @@ def menu_de_opcciones():
                 Buscar_serie()
             elif seleccion == 5:
                 Mostrar_series()
+            elif seleccion == 6:
+                Series_pendientes()
+            elif seleccion == 7:
+                Series_pendientes()
             elif seleccion == 8:
+                Eliminar_series()
+            elif seleccion == 9:
                 break
         except ValueError:
             print("error entrada invalida")
@@ -68,8 +77,8 @@ def menu_de_opcciones():
 
 
 lista_de_serie  = []
-series_vistas = {}
-ver_mas_tarde = {}
+series_vistas = []
+ver_mas_tarde = []
 
 def Agregar_serie():
     while True:
@@ -237,6 +246,90 @@ def Mostrar_series():
             print("error entrada ingrese una opccion entre 1 y 2")
 
 
+def Series_pendientes():
+    while True:
+        print("ingrese el nombre y genero para guardar la serie para ver despues")
+
+        nombre = input("ingrese el nombre de la serie que se guardara en ver mas tarde").strip()
+
+        if not nombre:
+            print("error invalido no puede ser vacio el campo")
+            continue
+
+        genero = input("ingrese el genero de la serie").strip()
+
+        if not genero:
+            print("error invalido no puede ser vacio el campo")
+            continue
+
+        if any(serie["nombre"].lower() == nombre.lower() for serie in ver_mas_tarde):
+            print("esta serie ya esta guardada en ver mas tarde")
+            continue
+
+        ver_mas_tarde.append({"nombre": nombre, "genero": genero})
+        print(f"✅ Serie '{nombre}' guardada correctamente en 'ver más tarde'.")
+        break
+
+
+def Lista_de_series_pendientes():
+    if not ver_mas_tarde:
+        print("no tienes seires guardadas en ver mas tarde")
+    else:
+        print("series pendientes guardadas")
+        for i, serie in enumerate(ver_mas_tarde, start=1):
+            print(f"{i}. {serie['nombre']} - 🎭 Género: {serie['genero']}")
+
+
+def Eliminar_series():
+    while True:
+
+        print("\n--- Eliminar Series ---")
+        print("1. Eliminar de series vistas")
+        print("2. Eliminar de series pendientes por ver")
+        print("3. Regresar al menú")
+
+        print("ingrese primero una opccion de donde se encuatra la serie que desea eliminar 1 en series vistas y 2 en pendientes por ver 3 para regresar")
+        try:
+            opcciones = int(input("ingrese una opccion 1 2 o 3"))
+        except ValueError:
+            print("error entrada ingrese una opccion entre 1 2 y 3")
+            continue
+        if opcciones == 1:
+            nombre = input("ingrese el nombre de la serie que desea eliminar").strip()
+            if not nombre:
+                print("error invalido no puede ser vacio el campo")
+                continue
+            encontrada = False  # asumimos que no está
+
+            for serie in series_vistas:
+                if serie["nombre"].lower() == nombre.lower():
+                    series_vistas.remove(serie)
+                    print(f"La serie {nombre} fue eliminada correctamente.")
+                    encontrada = True  # ya la encontramos
+                    break
+
+            if not encontrada:  # sigue en False
+                print("La serie no se encuentra en series vistas.")
+
+        elif opcciones == 2:
+            nombre = input("ingrese el nombre de la serie que desea eliminar").strip()
+            if not nombre:
+                print("error invalido no puede ser vacio el campo")
+                continue
+            encontrada = False  # asumimos que no está
+
+            for serie in ver_mas_tarde:
+                if serie["nombre"].lower() == nombre.lower():
+                    ver_mas_tarde.remove(serie)
+                    print(f"La serie {nombre} fue eliminada correctamente.")
+                    encontrada = True  # ya la encontramos
+                    break
+
+            if not encontrada:  # sigue en False
+                print("La serie no se encuentra en series vistas.")
+        elif opcciones == 3:
+            print("saliendo....")
+            break
 
 
 
