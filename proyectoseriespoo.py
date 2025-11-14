@@ -209,37 +209,8 @@ class Series:
             return errores
 
 #CREACION DEL MENU DE OPCCIONES DE LA PAGINA
-listas_series = {}
-
-def menu_menejo_listas():
-    print("MENU DE MANEJO DE LISTAS")
-    print("1.crear un lista de series")
-    print("2.ver lista existente")
 
 
 
-def bucle_series():
-    while True:
-        menu_menejo_listas()
-        opcciones =int(input("ingrese un numero entero dentro del rango `1 y 8` de opcciones"))
-
-        if opcciones == 1:
-            nombre_nueva_lista = input("ingrese el nombre la lista que desea crear: ").strip().title()
-            if not nombre_nueva_lista:
-                print("el nombre no puede estar vacio")
-                continue
-            if nombre_nueva_lista in listas_series:
-                print("ya existe una lista con ese nombre")
-                continue
-    # SE CREA LA NUEVA LISTA CON EL VALOR DE UNA LISTA DONDE SE VA ALMACENAR LAS SERIES
-            listas_series[nombre_nueva_lista] = []
-            print(f"✅ Lista '{nombre_nueva_lista}' creada exitosamente.")
-
-        elif opcciones == 2:
-            if not listas_series:
-                print("no hay lsitas de series creadas")
-            else:
-                print("lista de series creadas")
-                for 
 
 
