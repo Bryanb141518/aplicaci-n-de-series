@@ -3,9 +3,14 @@ from datetime import datetime
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field, field_validator
 
+from ejercicios3 import resultado
+
 # Inicializar la app de FastAPI
 app = FastAPI()
 lista_series = []
+series_vistas = []
+lista_creada_por_el_usuario = []
+favoritas = []
 
 genero_validos = ["terror","drama"]
 
@@ -31,7 +36,7 @@ class SeriesModel(BaseModel):
 
     plataforma: str = Field(default="Desconocida", min_length=1, max_length=100)
 
-    año : int = Field(..., ge=1920, le=2028)
+    anio : int = Field(..., ge=1920, le=2028)
 
     descripcion : str = Field(min_length=100, max_length=1000)
 
@@ -61,6 +66,7 @@ class SeriesModel(BaseModel):
             raise ValueError("no puede conteenr solo espacios vacios")
         return cleaned
 
+# creacion del objeto y guardado del objeto serie
 @app.post("/series",status_code=201)
 
 def create_series(series: SeriesModel):
@@ -70,4 +76,133 @@ def create_series(series: SeriesModel):
 
     return {"mensaje": "Serie creada correctamente", "serie": nueva_serie}
 
+# creacion de guardar una serie en una lista si el usuario la marca como vista
+
+#mostrar todas las series de la aplicacion
+@app.get("/series/todas")
+def mostrar_todas_las_series():
+    if not lista_series:
+        raise HTTPException(status_code=404, detail="No hay series registradas")
+
+    return {"total": len(lista_series), "series": lista_series}
+
+# creacion del get para la busqueda por nombre
+
+@app.get("/series/buscar/nombre")
+def buscar_en_todas(nombre:str):
+    for s in lista_series:
+        if s["nombre"].lower() == nombre.lower():
+            return {"resultado": s}
+    raise HTTPException(status_code=404, detail="Serie no encontrada")
+
+# bucar serie por año
+@app.get("/series/buscar/anio")
+def buscar_por_anio(anio: int):
+    resultados = []
+
+    for s in lista_series:
+        if s["anio"] == anio:
+            resultados.append(s)
+
+    if not resultados:
+        raise HTTPException(status_code=404, detail="No hay series de ese año")
+
+    return {"series": resultados}
+
+# buscar serie por genero
+@app.get("/series/buscar/genero")
+def buscar_genero(genero: str):
+    genero = genero.strip().lower()
+
+    resultados = []
+
+    for s in lista_series:
+        if "genero" in s and isinstance(s["genero"], str):
+            if s["genero"].strip().lower() == genero:
+                resultados.append(s)
+    if not resultados:
+        raise HTTPException(status_code=404,detail="No hay series de ese genero")
+    return {"series": resultados}
+
+
+@app.post("/series/vista", status_code=200)
+def marcar_vista(nombre_serie: str):
+    for s in lista_series:
+        if s["nombre"].lower() == nombre_serie.lower():
+            if s not in series_vistas:
+                series_vistas.append(s)
+                return {"mensaje": f"Serie '{nombre_serie}' marcada como vista"}
+            else:
+                raise HTTPException(status_code=400, detail="Serie ya estaba marcada como vista")
+    raise HTTPException(status_code=404, detail="Serie no encontrada")
+
+# creacionde una clase completa para la creacion de listas de series
+
+class listaModel(BaseModel):
+    nombre : str = Field(min_length=1, max_length=50)
+
+    @field_validator("nombre")
+    def validar_nombre_lista(cls, v):
+        v = v.strip()
+        if v == "":
+            raise ValueError("el nombre de la lista no puede ir vacio")
+        return v
+
+
+# buscar serie por nombre un una lista creada por el usuario
+@app.post("/lista/crear",status_code=201, tags=["lista del usuario"])
+def crear_lista(lista: listaModel):
+
+    # validar que no exista lista con el mismo nombre
+    for s in lista_creada_por_el_usuario:
+        if s["nombre"].lower() == lista.nombre.lower():
+            raise HTTPException(status_code=400, detail="ya existe una lista con ese nombre")
+
+    nueva_lista = {
+        "nombre": lista.nombre,
+        "series": []
+    }
+
+    lista_creada_por_el_usuario.append(nueva_lista)
+
+    return {
+        "mensaje": "Lista creada correctamente",
+        "lista": nueva_lista
+    }
+
+@app.get("/listas/buscar/nombre")
+def buscar_en_lista(nombre_lista: str, nombre_serie: str):
+
+    for lista in lista_creada_por_el_usuario:
+        if lista["nombre"].lower() == nombre_lista.lower():
+
+            for s in lista["series"]:
+                if s["nombre"].lower() == nombre_serie.lower():
+                    return {"resultado": s}
+
+            raise HTTPException(status_code=404, detail="La serie no está en esta lista")
+
+    raise HTTPException(status_code=404, detail="Lista no encontrada")
+
+
+# alamcenar en una lista las series favoritas por el usuario
+
+@app.post("/lista/favorita", status_code = 201, tags=["lista del usuario"])
+
+def marcar_favoritas(nombre_serie: str):
+    # verificar que la serie exista
+    for s in lista_series:
+        if s["nombre"].lower() == nombre_serie.lower():
+
+            # verificar si ya está en favoritos
+            if s in favoritas:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"La serie '{nombre_serie}' ya está en favoritos"
+                )
+
+            favoritas.append(s)
+            return {"mensaje": f"Serie '{nombre_serie}' agregada a favoritos"}
+
+    raise HTTPException(status_code=404, detail="Serie no encontrada")
 
