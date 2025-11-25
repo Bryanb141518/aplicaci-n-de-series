@@ -2,6 +2,7 @@
 from datetime import datetime
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field, field_validator
+from fastapi import Body
 
 from ejercicios3 import resultado
 
@@ -14,15 +15,6 @@ favoritas = []
 
 genero_validos = ["terror","drama"]
 
-class Series:
-    def __init__(self, nombre, genero, plataforma,  año,  descripcion ):
-        # Nada es opcional - todo obligatorio
-
-        self.nombre = nombre
-        self.genero = genero
-        self.plataforma = plataforma
-        self.año = año
-        self.descripcion = descripcion
 
 # manejo de errores en la entrada de los datos con lista de errores
 
@@ -169,6 +161,35 @@ def crear_lista(lista: listaModel):
         "mensaje": "Lista creada correctamente",
         "lista": nueva_lista
     }
+#con body lo que hacemos es indicar que busqeu los adato en la funcion del post no en la url
+# con este post lo que se hace es agregar las series a las listas
+
+@app.post("/lista/agregar", status_code=201, tags=["lista del usuario"])
+def agregar_serie_a_lista(
+    nombre_lista: str = Body(...),
+    nombre_serie: str = Body(...)
+):
+    # Buscar la lista
+    lista = next((l for l in lista_creada_por_el_usuario if l["nombre"].lower() == nombre_lista.lower()), None)
+    if not lista:
+        raise HTTPException(status_code=404, detail=f"No se encontró la lista '{nombre_lista}'")
+
+    # Buscar la serie en lista_series
+    serie = next((s for s in lista_series if s["nombre"].lower() == nombre_serie.lower()), None)
+    if not serie:
+        raise HTTPException(status_code=404, detail=f"No se encontró la serie '{nombre_serie}'")
+
+    # Validar que no esté repetida en la lista
+    if any(s["nombre"].lower() == nombre_serie.lower() for s in lista["series"]):
+        raise HTTPException(status_code=400, detail=f"La serie '{nombre_serie}' ya está en esta lista")
+
+    # Agregar serie
+    lista["series"].append(serie)
+    return {
+        "mensaje": f"Serie '{nombre_serie}' agregada correctamente a la lista '{nombre_lista}'",
+        "lista": lista
+    }
+
 
 @app.get("/listas/buscar/nombre")
 def buscar_en_lista(nombre_lista: str, nombre_serie: str):
