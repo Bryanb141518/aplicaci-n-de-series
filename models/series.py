@@ -153,6 +153,7 @@ def marcar_vista(nombre_serie: str = Body(...), calificacion: float = Body(..., 
     else:
         usuario_calificaciones[nombre_serie] = calificacion  # guardar nueva calificación
 
+
     # Verificar si ya está en series_vistas por nombre
     if any(s["nombre"].lower() == nombre_serie.lower() for s in series_vistas):
         raise HTTPException(status_code=400, detail="Serie ya estaba marcada como vista")
@@ -207,33 +208,40 @@ def crear_lista(lista: listaModel):
 def agregar_serie_a_lista(
     nombre_lista: str = Body(...),
     nombre_serie: str = Body(...),
-    calificacion: float = Body(..., ge=0, le=10),# recibimos la clificacion
+    calificacion: float = Body(..., ge=0, le=10),  # recibimos la calificación
 ):
-    # Buscar la lista
+    # 1️ Buscar la lista
     lista = next((l for l in lista_creada_por_el_usuario if l["nombre"].lower() == nombre_lista.lower()), None)
     if not lista:
         raise HTTPException(status_code=404, detail=f"No se encontró la lista '{nombre_lista}'")
 
-    # Buscar la serie en lista_series
+    # 2️ Buscar la serie en lista_series
     serie = next((s for s in lista_series if s["nombre"].lower() == nombre_serie.lower()), None)
     if not serie:
         raise HTTPException(status_code=404, detail=f"No se encontró la serie '{nombre_serie}'")
 
-    # Validar que no esté repetida en la lista
+    # 3️ Validar que no esté repetida en la lista
     if any(s["nombre"].lower() == nombre_serie.lower() for s in lista["series"]):
         raise HTTPException(status_code=400, detail=f"La serie '{nombre_serie}' ya está en esta lista")
 
-        # 4. Revisar calificación global
+    # 4️ Revisar calificación global del usuario
     if nombre_serie in usuario_calificaciones:
         calificacion = usuario_calificaciones[nombre_serie]  # usar calificación previa
     else:
         usuario_calificaciones[nombre_serie] = calificacion  # guardar nueva calificación
-    # Agregar serie
-    lista["series"].append(serie)
+
+    # 5️ Crear copia de la serie con calificación
+    serie_usuario = serie.copy()
+    serie_usuario["calificacion"] = calificacion
+
+    # 6️ Agregar a la lista del usuario
+    lista["series"].append(serie_usuario)
+
     return {
         "mensaje": f"Serie '{nombre_serie}' agregada correctamente a la lista '{nombre_lista}'",
         "lista": lista
     }
+
 
 
 @app.get("/listas/buscar/nombre")
@@ -272,16 +280,14 @@ def marcar_favoritas(
     # Verificar si ya está en favoritos comparando solo por nombre
     if any(s["nombre"].lower() == nombre_serie.lower() for s in favoritas):
         raise HTTPException(status_code=400, detail="Serie ya estaba en favoritos")
-    
+
     # Crear copia para el usuario y agregar calificación
     serie_usuario = serie.copy()
     serie_usuario["calificacion"] = calificacion
+    favoritas.append(serie_usuario)
 
-    if serie_usuario not in favoritas:
-        favoritas.append(serie_usuario)
-        return {"mensaje": f"Serie '{nombre_serie}' agregada a favoritos", "serie": serie_usuario}
-    else:
-        raise HTTPException(status_code=400, detail="Serie ya estaba en favoritos")
+    return {"mensaje": f"Serie '{nombre_serie}' agregada a favoritos", "serie": serie_usuario}
+
 
 #eliminar una serie de la lista de favoritos
 
