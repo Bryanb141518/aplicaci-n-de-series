@@ -4,7 +4,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field, field_validator
 from fastapi import Body
 
-from ejercicios3 import resultado
+
 
 # Inicializar la app de FastAPI
 app = FastAPI()
@@ -15,6 +15,16 @@ favoritas = []
 
 genero_validos = ["terror","drama"]
 
+
+# logic/series.py
+
+class Series:
+    def __init__(self, nombre: str, genero: str, plataforma: str, anio: int, descripcion: str):
+        self.nombre = nombre
+        self.genero = genero
+        self.plataforma = plataforma
+        self.anio = anio
+        self.descripcion = descripcion
 
 # manejo de errores en la entrada de los datos con lista de errores
 
@@ -58,15 +68,26 @@ class SeriesModel(BaseModel):
             raise ValueError("no puede conteenr solo espacios vacios")
         return cleaned
 
-# creacion del objeto y guardado del objeto serie
-@app.post("/series",status_code=201)
-
+# Creación del objeto y guardado del objeto serie
+@app.post("/series", status_code=201)
 def create_series(series: SeriesModel):
+
+    # 🔍 VALIDACIÓN: nombre repetido
+    for s in lista_series:
+        if s["nombre"].lower() == series.nombre.lower():
+            raise HTTPException(
+                status_code=400,
+                detail=f"La serie '{series.nombre}' ya existe en el sistema."
+            )
+
+    # Crear objeto limpio
     nueva_serie = series.model_dump()
 
+    # Guardarlo en la lista
     lista_series.append(nueva_serie)
 
     return {"mensaje": "Serie creada correctamente", "serie": nueva_serie}
+
 
 # creacion de guardar una serie en una lista si el usuario la marca como vista
 
@@ -227,3 +248,38 @@ def marcar_favoritas(nombre_serie: str):
 
     raise HTTPException(status_code=404, detail="Serie no encontrada")
 
+
+#eliminar una serie de la lista de favoritos
+
+@app.delete("/borrar/favorita")
+def eliminar_favoritas(nombre_serie: str):
+    for s in favoritas:
+        if s["nombre"].lower() == nombre_serie.lower():
+            favoritas.remove(s)
+            return {"mensaje": f"Serie '{nombre_serie}' eliminada de favoritos"}
+
+    raise HTTPException(status_code=404, detail="Serie no esta en favoritas")
+
+#eliminar serie de una lista creada por el usuario
+@app.delete("/lista/eliminar", tags=["lista del usuario"])
+def eliminar_serie(nombre_lista: str,nombre_serie: str):
+    # 1. Buscar la lista
+    lista = next(
+        (l for l in lista_creada_por_el_usuario if l["nombre"].lower() == nombre_lista.lower()),
+        None
+    )
+    if not lista:
+        raise HTTPException(status_code=404,detail="lista no encontrada")
+
+    # 2 buscar la serie dentro de la lista
+    serie = next(
+        (s for s in lista["series"] if s["nombre"].lower() == nombre_serie.lower()),
+        None
+    )
+    if not serie:
+        raise HTTPException(status_code=404, detail="la serie no esta en esta lista")
+
+    # 3 eliminar seire
+
+    lista["series"].remove(serie)
+    return {"mensaje": f"Serie '{nombre_serie}' eliminada de la lista '{nombre_lista}'"}
