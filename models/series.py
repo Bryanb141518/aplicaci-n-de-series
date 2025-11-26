@@ -139,15 +139,20 @@ def buscar_genero(genero: str):
 
 
 @app.post("/series/vista", status_code=200)
-def marcar_vista(nombre_serie: str):
-    for s in lista_series:
-        if s["nombre"].lower() == nombre_serie.lower():
-            if s not in series_vistas:
-                series_vistas.append(s)
-                return {"mensaje": f"Serie '{nombre_serie}' marcada como vista"}
-            else:
-                raise HTTPException(status_code=400, detail="Serie ya estaba marcada como vista")
-    raise HTTPException(status_code=404, detail="Serie no encontrada")
+def marcar_vista(nombre_serie: str = Body(...), calificacion: float = Body(..., ge=0, le=10)):
+    serie = next((s for s in lista_series if s["nombre"].lower() == nombre_serie.lower()), None)
+    if not serie:
+        raise HTTPException(status_code=404, detail="Serie no encontrada")
+
+    # agregar a series_vistas con calificación
+    serie_usuario = serie.copy()
+    serie_usuario["calificacion"] = calificacion
+
+    if serie_usuario not in series_vistas:
+        series_vistas.append(serie_usuario)
+        return {"mensaje": f"Serie '{nombre_serie}' marcada como vista", "serie": serie_usuario}
+    else:
+        raise HTTPException(status_code=400, detail="Serie ya estaba marcada como vista")
 
 # creacionde una clase completa para la creacion de listas de series
 
