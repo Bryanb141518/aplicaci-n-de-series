@@ -234,25 +234,25 @@ def buscar_en_lista(nombre_lista: str, nombre_serie: str):
 
 # alamcenar en una lista las series favoritas por el usuario
 
-@app.post("/lista/favorita", status_code = 201, tags=["lista del usuario"])
+@app.post("/lista/favorita", status_code=201, tags=["lista del usuario"])
+def marcar_favoritas(
+    nombre_serie: str = Body(...),
+    calificacion: float = Body(..., ge=0, le=10)
+):
+    # Buscar la serie en lista_series
+    serie = next((s for s in lista_series if s["nombre"].lower() == nombre_serie.lower()), None)
+    if not serie:
+        raise HTTPException(status_code=404, detail="Serie no encontrada")
 
-def marcar_favoritas(nombre_serie: str):
-    # verificar que la serie exista
-    for s in lista_series:
-        if s["nombre"].lower() == nombre_serie.lower():
+    # Crear copia para el usuario y agregar calificación
+    serie_usuario = serie.copy()
+    serie_usuario["calificacion"] = calificacion
 
-            # verificar si ya está en favoritos
-            if s in favoritas:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"La serie '{nombre_serie}' ya está en favoritos"
-                )
-
-            favoritas.append(s)
-            return {"mensaje": f"Serie '{nombre_serie}' agregada a favoritos"}
-
-    raise HTTPException(status_code=404, detail="Serie no encontrada")
-
+    if serie_usuario not in favoritas:
+        favoritas.append(serie_usuario)
+        return {"mensaje": f"Serie '{nombre_serie}' agregada a favoritos", "serie": serie_usuario}
+    else:
+        raise HTTPException(status_code=400, detail="Serie ya estaba en favoritos")
 
 #eliminar una serie de la lista de favoritos
 
