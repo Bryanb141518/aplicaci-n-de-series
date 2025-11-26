@@ -63,6 +63,7 @@ class SeriesModel(BaseModel):
             )
         return cleaned
 
+
     @field_validator('descripcion', mode= "before")
     def validate_descripcion(cls, v):
         cleaned = v.strip().title()
@@ -152,6 +153,10 @@ def marcar_vista(nombre_serie: str = Body(...), calificacion: float = Body(..., 
     else:
         usuario_calificaciones[nombre_serie] = calificacion  # guardar nueva calificación
 
+    # Verificar si ya está en series_vistas por nombre
+    if any(s["nombre"].lower() == nombre_serie.lower() for s in series_vistas):
+        raise HTTPException(status_code=400, detail="Serie ya estaba marcada como vista")
+
     # agregar a series_vistas con calificación
     serie_usuario = serie.copy()
     serie_usuario["calificacion"] = calificacion
@@ -202,7 +207,7 @@ def crear_lista(lista: listaModel):
 def agregar_serie_a_lista(
     nombre_lista: str = Body(...),
     nombre_serie: str = Body(...),
-    calificacion: float = Body(..., ge=0, le=10),# recibimos la clificacion 
+    calificacion: float = Body(..., ge=0, le=10),# recibimos la clificacion
 ):
     # Buscar la lista
     lista = next((l for l in lista_creada_por_el_usuario if l["nombre"].lower() == nombre_lista.lower()), None)
@@ -263,6 +268,11 @@ def marcar_favoritas(
         calificacion = usuario_calificaciones[nombre_serie]  # usar calificación previa
     else:
         usuario_calificaciones[nombre_serie] = calificacion  # guardar nueva calificación
+
+    # Verificar si ya está en favoritos comparando solo por nombre
+    if any(s["nombre"].lower() == nombre_serie.lower() for s in favoritas):
+        raise HTTPException(status_code=400, detail="Serie ya estaba en favoritos")
+    
     # Crear copia para el usuario y agregar calificación
     serie_usuario = serie.copy()
     serie_usuario["calificacion"] = calificacion
