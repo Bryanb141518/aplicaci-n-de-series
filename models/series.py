@@ -12,6 +12,8 @@ lista_series = []
 series_vistas = []
 lista_creada_por_el_usuario = []
 favoritas = []
+# Diccionario global para guardar calificaciones de usuario por serie
+usuario_calificaciones = {}  # {'Breaking Bad': 9.0}
 
 genero_validos = ["terror","drama"]
 
@@ -144,6 +146,12 @@ def marcar_vista(nombre_serie: str = Body(...), calificacion: float = Body(..., 
     if not serie:
         raise HTTPException(status_code=404, detail="Serie no encontrada")
 
+    # Revisar si ya tiene calificación global
+    if nombre_serie in usuario_calificaciones:
+        calificacion = usuario_calificaciones[nombre_serie]  # usar calificación previa
+    else:
+        usuario_calificaciones[nombre_serie] = calificacion  # guardar nueva calificación
+
     # agregar a series_vistas con calificación
     serie_usuario = serie.copy()
     serie_usuario["calificacion"] = calificacion
@@ -193,7 +201,8 @@ def crear_lista(lista: listaModel):
 @app.post("/lista/agregar", status_code=201, tags=["lista del usuario"])
 def agregar_serie_a_lista(
     nombre_lista: str = Body(...),
-    nombre_serie: str = Body(...)
+    nombre_serie: str = Body(...),
+    calificacion: float = Body(..., ge=0, le=10),# recibimos la clificacion 
 ):
     # Buscar la lista
     lista = next((l for l in lista_creada_por_el_usuario if l["nombre"].lower() == nombre_lista.lower()), None)
@@ -209,6 +218,11 @@ def agregar_serie_a_lista(
     if any(s["nombre"].lower() == nombre_serie.lower() for s in lista["series"]):
         raise HTTPException(status_code=400, detail=f"La serie '{nombre_serie}' ya está en esta lista")
 
+        # 4. Revisar calificación global
+    if nombre_serie in usuario_calificaciones:
+        calificacion = usuario_calificaciones[nombre_serie]  # usar calificación previa
+    else:
+        usuario_calificaciones[nombre_serie] = calificacion  # guardar nueva calificación
     # Agregar serie
     lista["series"].append(serie)
     return {
@@ -244,6 +258,11 @@ def marcar_favoritas(
     if not serie:
         raise HTTPException(status_code=404, detail="Serie no encontrada")
 
+    # Revisar si ya tiene calificación global
+    if nombre_serie in usuario_calificaciones:
+        calificacion = usuario_calificaciones[nombre_serie]  # usar calificación previa
+    else:
+        usuario_calificaciones[nombre_serie] = calificacion  # guardar nueva calificación
     # Crear copia para el usuario y agregar calificación
     serie_usuario = serie.copy()
     serie_usuario["calificacion"] = calificacion
