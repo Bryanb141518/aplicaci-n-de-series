@@ -75,7 +75,7 @@ class SeriesModel(BaseModel):
 @app.post("/series", status_code=201)
 def create_series(series: SeriesModel):
 
-    # 🔍 VALIDACIÓN: nombre repetido
+    # VALIDACIÓN: nombre repetido
     for s in lista_series:
         if s["nombre"].lower() == series.nombre.lower():
             raise HTTPException(
