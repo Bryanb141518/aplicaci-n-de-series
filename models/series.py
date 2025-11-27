@@ -1,7 +1,7 @@
 
 from datetime import datetime
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, EmailStr
 from fastapi import Body
 
 
