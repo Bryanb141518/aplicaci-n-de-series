@@ -60,6 +60,28 @@ class Usuariomodel(BaseModel):
     def validar_apellido(cls, v):
         return validar_nombre_apellido(v,"apellido")
 
+    @field_validator("edad",mode="before")
+    def validar_edad(cls, v):
+        # Si viene como entero, solo retornarlo
+        if isinstance(v, int):
+            return v
+
+        # Si viene como string
+        if isinstance(v, str):
+            limpio = v.strip()
+
+            if not limpio:
+                raise ValueError("El campo edad no puede ir vacío")
+
+            if not limpio.isdigit():
+                raise ValueError("La edad debe ser un número entero")
+
+            return int(limpio)
+
+        # Si viene cualquier otro tipo
+        raise ValueError("La edad debe ser un número entero válido")
+
+
 
 
 
