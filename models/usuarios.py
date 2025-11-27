@@ -1,10 +1,14 @@
 from re import fullmatch
 from datetime import datetime
+
+from fastapi import FastAPI
 from pydantic import BaseModel, Field, field_validator, EmailStr
 from datetime import datetime
 # util cunado se necectia validar texto y constrasanas
 import string
 import re
+
+app = FastAPI()
 
 class Usuario:
     def __init__(self, nombre: str, apellido: str,  edad: int, correo:str, contrasena:str):
@@ -112,7 +116,6 @@ class Usuariomodel(BaseModel):
             raise ValueError("La contraseña debe tener al menos una letra minúscula")
 
         return v
-
 
 
 
