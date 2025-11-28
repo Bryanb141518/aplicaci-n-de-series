@@ -1,15 +1,17 @@
-from re import fullmatch
+
 from datetime import datetime
+from http.client import HTTPException
 
 from fastapi import FastAPI
+from fastapi.openapi.utils import status_code_ranges
 from pydantic import BaseModel, Field, field_validator, EmailStr
 from datetime import datetime
-# util cunado se necectia validar texto y constrasanas
+# util cuando se nececita validar texto y constrasenas
 import string
 import re
 
 app = FastAPI()
-
+lista_usuarios = []
 class Usuario:
     def __init__(self, nombre: str, apellido: str,  edad: int, correo:str, contrasena:str):
 
@@ -116,6 +118,26 @@ class Usuariomodel(BaseModel):
             raise ValueError("La contraseña debe tener al menos una letra minúscula")
 
         return v
+
+# validacion con endpoint las validaciones del negocio y guardado de datos
+@app.post("/usuarios" ,status_code=201)
+def create_usuario(usuario: Usuariomodel):
+    # Validar que el correo no sea el mismo
+    for s in lista_usuarios:
+        if s["correo"].lower() == usuario.correo.lower():
+            raise HTTPException(
+                status_code=400,
+                detail=f"el correo '{usuario.correo}' ya existe en el sistema"
+            )
+
+    #convertir los datos ya validados a una lista con los datos en diccioanrio
+    nuevo_usuario = usuario.model_dump()
+
+    #guardar los datos en una lista
+    lista_usuarios.append(nuevo_usuario)
+
+    return {"mensaje": "usuario registrado correctamente", "serie": lista_usuarios}
+
 
 
 
