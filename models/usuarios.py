@@ -1,11 +1,7 @@
 
 from datetime import datetime
-from http.client import HTTPException
-
-from fastapi import FastAPI
-from fastapi.openapi.utils import status_code_ranges
+from fastapi import FastAPI, HTTPException, Body
 from pydantic import BaseModel, Field, field_validator, EmailStr
-from datetime import datetime
 # util cuando se nececita validar texto y constrasenas
 import string
 import re
@@ -46,6 +42,10 @@ def validar_nombre_apellido(valor: str,campo: str) -> str:
 
 # esta variable contiene todos los caracteres especiales del string para la validacion de constrasena
 caracter_especial = string.punctuation
+class LoginModel(BaseModel):
+    correo: EmailStr
+    contrasena: str
+
 class Usuariomodel(BaseModel):
 
     nombre : str = Field(min_length=1, max_length=100)
@@ -120,26 +120,77 @@ class Usuariomodel(BaseModel):
         return v
 
 # validacion con endpoint las validaciones del negocio y guardado de datos
-@app.post("/usuarios" ,status_code=201)
+@app.post("/usuarios", status_code=201)
 def create_usuario(usuario: Usuariomodel):
-    # Validar que el correo no sea el mismo
+    # Validación 1: Edad mínima
+    if usuario.edad < 14:
+        raise HTTPException(
+            status_code=400,
+            detail="Debes tener al menos 14 años para registrarte"
+        )
+    
+    # Validación 2: Correo único
     for s in lista_usuarios:
         if s["correo"].lower() == usuario.correo.lower():
             raise HTTPException(
                 status_code=400,
-                detail=f"el correo '{usuario.correo}' ya existe en el sistema"
+                detail=f"El correo '{usuario.correo}' ya existe en el sistema"
             )
 
-    #convertir los datos ya validados a una lista con los datos en diccioanrio
+    # Convertir los datos ya validados a diccionario
     nuevo_usuario = usuario.model_dump()
 
-    #guardar los datos en una lista
+    # Guardar los datos en la lista
     lista_usuarios.append(nuevo_usuario)
 
-    return {"mensaje": "usuario registrado correctamente", "serie": lista_usuarios}
+    return {"mensaje": "Usuario registrado correctamente", "usuario": nuevo_usuario}
 
+# Endpoint de login
+@app.post("/usuarios/login")
+def login(datos_login: LoginModel):
+    # Buscar usuario por correo
+    usuario = None
+    for u in lista_usuarios:
+        if u["correo"].lower() == datos_login.correo.lower():
+            usuario = u
+            break
+    
+    # Si no existe el usuario
+    if not usuario:
+        raise HTTPException(
+            status_code=404,
+            detail="Usuario no encontrado"
+        )
+    
+    # Verificar contraseña
+    if usuario["contrasena"] != datos_login.contrasena:
+        raise HTTPException(
+            status_code=401,
+            detail="Contraseña incorrecta"
+        )
+    
+    # Login exitoso
+    return {
+        "mensaje": "Login exitoso",
+        "usuario": {
+            "nombre": usuario["nombre"],
+            "apellido": usuario["apellido"],
+            "correo": usuario["correo"]
+            # NO devuelve la contraseña por seguridad
+        }
+    }
 
+# Ver todos los registros del usuario
+@app.get("/usuarios/todos")
+def todos_los_registros():
+    if not lista_usuarios:
+        raise HTTPException(status_code=404, detail="No hay usuarios registrados")
 
+# cuando se muesten los registros de usuarios no se muestre la contrasena 
+    usuarios_sin_pass = []
+    for u in lista_usuarios:
+        copia = u.copy()
+        copia.pop("contrasena", None)
+        usuarios_sin_pass.append(copia)
 
-
-
+    return {"total": len(usuarios_sin_pass), "usuarios": usuarios_sin_pass}
