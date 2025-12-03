@@ -6,8 +6,6 @@ from pydantic import BaseModel, Field, field_validator, EmailStr
 import string
 import re
 
-from ejercicios2 import resultado
-
 app = FastAPI()
 lista_usuarios = []
 class Usuario:
@@ -275,3 +273,15 @@ def actualizar_usuario(correo: str, datos: dict):
     raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
 
+#eliminacion de usuario por correo
+
+@app.delete("/usuarios/{correo}")
+def eliminar_usuario(correo: str):
+    correo_limpio = correo.strip().lower()
+
+    for u in lista_usuarios:
+        if u["correo"].lower() == correo_limpio:
+            lista_usuarios.remove(u)
+            return {"mensaje": "Usuario eliminado correctamente"}
+
+    raise HTTPException(status_code=404, detail="Usuario no encontrado")
