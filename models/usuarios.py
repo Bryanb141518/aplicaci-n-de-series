@@ -249,3 +249,29 @@ def buscar_correo(correo: str):
         "usuarios": usuarios_sin_pass
     }
 
+# busqueda de usuario por correo por que es un valor unico para la acutlizacion de los datos
+
+@app.put("/usuarios/{correo}")
+def actualizar_usuario(correo: str, datos: dict):
+    correo_limpio = correo.strip().lower()
+
+    for u in lista_usuarios:
+        if u["correo"].lower() == correo_limpio:
+
+            if "nombre" in datos:
+                u["nombre"] = datos["nombre"]
+
+            if "apellido" in datos:
+                u["apellido"] = datos["apellido"]
+
+            if "edad" in datos:
+                u["edad"] = datos["edad"]
+
+            if "contrasena" in datos:
+                u["contrasena"] = datos["contrasena"]
+
+            return {"mensaje": "Usuario actualizado", "usuario": u}
+
+    raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+
