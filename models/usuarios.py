@@ -225,3 +225,27 @@ def busqeuda_nombre(nombre: str):
         "total": len(usuarios_sin_pass),
         "usuarios": usuarios_sin_pass
     }
+# busqueda de usuarios por correo sin retornar su contrasena
+@app.get("/usuarios/buscar/correo/{correo}")
+def buscar_correo(correo: str):
+    correo_limpio = correo.strip().lower()
+    if not correo_limpio:
+        raise HTTPException(status_code=400, detail="el correo no puede estar vacio")
+
+    resultado = []
+    for u in lista_usuarios:
+        if u["correo"].lower() == correo_limpio:
+            resultado.append(u)
+
+    # cuando se muesten los registros de usuarios no se muestre la contrasena
+    usuarios_sin_pass = []
+    for u in resultado:
+        copia = u.copy()
+        copia.pop("contrasena", None)
+        usuarios_sin_pass.append(copia)
+
+    return {
+        "total": len(usuarios_sin_pass),
+        "usuarios": usuarios_sin_pass
+    }
+
