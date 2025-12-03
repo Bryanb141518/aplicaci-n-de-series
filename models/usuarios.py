@@ -6,6 +6,8 @@ from pydantic import BaseModel, Field, field_validator, EmailStr
 import string
 import re
 
+from ejercicios2 import resultado
+
 app = FastAPI()
 lista_usuarios = []
 class Usuario:
@@ -194,3 +196,32 @@ def todos_los_registros():
         usuarios_sin_pass.append(copia)
 
     return {"total": len(usuarios_sin_pass), "usuarios": usuarios_sin_pass}
+
+# busqueda de usuarios por nombre sin retornar su contrasena
+
+@app.get("/usuarios/buscar/nombre/{nombre}")
+def busqeuda_nombre(nombre: str):
+    nombre_limpio = nombre.strip().lower()
+
+    if not nombre_limpio:
+        raise HTTPException(status_code=400, detail="el nombre no puede estar vacio")
+
+    resultado = []
+    for u in lista_usuarios:
+        if u["nombre"].lower() == nombre_limpio:
+            resultado.append(u)
+
+    if not resultado:
+        raise HTTPException(status_code=404, detail="No se encontro usuario con ese nombre")
+
+    # cuando se muesten los registros de usuarios no se muestre la contrasena
+    usuarios_sin_pass = []
+    for u in resultado:
+        copia = u.copy()
+        copia.pop("contrasena", None)
+        usuarios_sin_pass.append(copia)
+
+    return {
+        "total": len(usuarios_sin_pass),
+        "usuarios": usuarios_sin_pass
+    }
