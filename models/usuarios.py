@@ -1,13 +1,17 @@
-
 from datetime import datetime
-from fastapi import FastAPI, HTTPException, Body
+from fastapi import FastAPI, HTTPException, Body, Depends
+from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field, field_validator, EmailStr
 # util cuando se nececita validar texto y constrasenas
 import string
 import re
 
+# Importar configuración de base de datos y modelos
+from .database import get_db
+from .db_models import UsuarioDB
+
 app = FastAPI()
-lista_usuarios = []
+
 class Usuario:
     def __init__(self, nombre: str, apellido: str,  edad: int, correo:str, contrasena:str):
 
@@ -42,6 +46,7 @@ def validar_nombre_apellido(valor: str,campo: str) -> str:
 
 # esta variable contiene todos los caracteres especiales del string para la validacion de constrasena
 caracter_especial = string.punctuation
+
 class LoginModel(BaseModel):
     correo: EmailStr
     contrasena: str
@@ -119,9 +124,11 @@ class Usuariomodel(BaseModel):
 
         return v
 
-# validacion con endpoint las validaciones del negocio y guardado de datos
+# ==================== ENDPOINTS CON SQLALCHEMY ====================
+
+# CREAR USUARIO
 @app.post("/usuarios", status_code=201)
-def create_usuario(usuario: Usuariomodel):
+def create_usuario(usuario: Usuariomodel, db: Session = Depends(get_db)):
     # Validación 1: Edad mínima
     if usuario.edad < 14:
         raise HTTPException(
@@ -130,30 +137,42 @@ def create_usuario(usuario: Usuariomodel):
         )
     
     # Validación 2: Correo único
-    for s in lista_usuarios:
-        if s["correo"].lower() == usuario.correo.lower():
-            raise HTTPException(
-                status_code=400,
-                detail=f"El correo '{usuario.correo}' ya existe en el sistema"
-            )
+    existe = db.query(UsuarioDB).filter(UsuarioDB.correo == usuario.correo).first()
+    if existe:
+        raise HTTPException(
+            status_code=400,
+            detail=f"El correo '{usuario.correo}' ya existe en el sistema"
+        )
 
-    # Convertir los datos ya validados a diccionario
-    nuevo_usuario = usuario.model_dump()
+    # Crear usuario en la base de datos
+    nuevo_usuario = UsuarioDB(
+        nombre=usuario.nombre,
+        apellido=usuario.apellido,
+        edad=usuario.edad,
+        correo=usuario.correo,
+        contrasena=usuario.contrasena
+    )
+    
+    db.add(nuevo_usuario)
+    db.commit()
+    db.refresh(nuevo_usuario)
 
-    # Guardar los datos en la lista
-    lista_usuarios.append(nuevo_usuario)
+    return {
+        "mensaje": "Usuario registrado correctamente",
+        "usuario": {
+            "id": nuevo_usuario.id,
+            "nombre": nuevo_usuario.nombre,
+            "apellido": nuevo_usuario.apellido,
+            "edad": nuevo_usuario.edad,
+            "correo": nuevo_usuario.correo
+        }
+    }
 
-    return {"mensaje": "Usuario registrado correctamente", "usuario": nuevo_usuario}
-
-# Endpoint de login
+# LOGIN
 @app.post("/usuarios/login")
-def login(datos_login: LoginModel):
+def login(datos_login: LoginModel, db: Session = Depends(get_db)):
     # Buscar usuario por correo
-    usuario = None
-    for u in lista_usuarios:
-        if u["correo"].lower() == datos_login.correo.lower():
-            usuario = u
-            break
+    usuario = db.query(UsuarioDB).filter(UsuarioDB.correo == datos_login.correo).first()
     
     # Si no existe el usuario
     if not usuario:
@@ -163,7 +182,7 @@ def login(datos_login: LoginModel):
         )
     
     # Verificar contraseña
-    if usuario["contrasena"] != datos_login.contrasena:
+    if usuario.contrasena != datos_login.contrasena:
         raise HTTPException(
             status_code=401,
             detail="Contraseña incorrecta"
@@ -173,115 +192,144 @@ def login(datos_login: LoginModel):
     return {
         "mensaje": "Login exitoso",
         "usuario": {
-            "nombre": usuario["nombre"],
-            "apellido": usuario["apellido"],
-            "correo": usuario["correo"]
+            "nombre": usuario.nombre,
+            "apellido": usuario.apellido,
+            "correo": usuario.correo
             # NO devuelve la contraseña por seguridad
         }
     }
 
-# Ver todos los registros del usuario
+# LISTAR TODOS LOS USUARIOS
 @app.get("/usuarios/todos")
-def todos_los_registros():
-    if not lista_usuarios:
+def todos_los_registros(db: Session = Depends(get_db)):
+    usuarios = db.query(UsuarioDB).all()
+    
+    if not usuarios:
         raise HTTPException(status_code=404, detail="No hay usuarios registrados")
 
-# cuando se muesten los registros de usuarios no se muestre la contrasena 
-    usuarios_sin_pass = []
-    for u in lista_usuarios:
-        copia = u.copy()
-        copia.pop("contrasena", None)
-        usuarios_sin_pass.append(copia)
+    # Crear lista sin contraseñas
+    usuarios_sin_pass = [
+        {
+            "id": u.id,
+            "nombre": u.nombre,
+            "apellido": u.apellido,
+            "edad": u.edad,
+            "correo": u.correo
+        }
+        for u in usuarios
+    ]
 
     return {"total": len(usuarios_sin_pass), "usuarios": usuarios_sin_pass}
 
-# busqueda de usuarios por nombre sin retornar su contrasena
-
+# BUSCAR POR NOMBRE
 @app.get("/usuarios/buscar/nombre/{nombre}")
-def busqeuda_nombre(nombre: str):
+def busqueda_nombre(nombre: str, db: Session = Depends(get_db)):
     nombre_limpio = nombre.strip().lower()
 
     if not nombre_limpio:
         raise HTTPException(status_code=400, detail="el nombre no puede estar vacio")
 
-    resultado = []
-    for u in lista_usuarios:
-        if u["nombre"].lower() == nombre_limpio:
-            resultado.append(u)
+    # Buscar usuarios por nombre (case insensitive)
+    usuarios = db.query(UsuarioDB).filter(UsuarioDB.nombre.ilike(nombre_limpio)).all()
 
-    if not resultado:
+    if not usuarios:
         raise HTTPException(status_code=404, detail="No se encontro usuario con ese nombre")
 
-    # cuando se muesten los registros de usuarios no se muestre la contrasena
-    usuarios_sin_pass = []
-    for u in resultado:
-        copia = u.copy()
-        copia.pop("contrasena", None)
-        usuarios_sin_pass.append(copia)
+    # Crear lista sin contraseñas
+    usuarios_sin_pass = [
+        {
+            "id": u.id,
+            "nombre": u.nombre,
+            "apellido": u.apellido,
+            "edad": u.edad,
+            "correo": u.correo
+        }
+        for u in usuarios
+    ]
 
     return {
         "total": len(usuarios_sin_pass),
         "usuarios": usuarios_sin_pass
     }
-# busqueda de usuarios por correo sin retornar su contrasena
+
+# BUSCAR POR CORREO
 @app.get("/usuarios/buscar/correo/{correo}")
-def buscar_correo(correo: str):
+def buscar_correo(correo: str, db: Session = Depends(get_db)):
     correo_limpio = correo.strip().lower()
+    
     if not correo_limpio:
         raise HTTPException(status_code=400, detail="el correo no puede estar vacio")
 
-    resultado = []
-    for u in lista_usuarios:
-        if u["correo"].lower() == correo_limpio:
-            resultado.append(u)
+    # Buscar usuario por correo
+    usuario = db.query(UsuarioDB).filter(UsuarioDB.correo.ilike(correo_limpio)).first()
 
-    # cuando se muesten los registros de usuarios no se muestre la contrasena
-    usuarios_sin_pass = []
-    for u in resultado:
-        copia = u.copy()
-        copia.pop("contrasena", None)
-        usuarios_sin_pass.append(copia)
+    if not usuario:
+        raise HTTPException(status_code=404, detail="No se encontro usuario con ese correo")
 
-    return {
-        "total": len(usuarios_sin_pass),
-        "usuarios": usuarios_sin_pass
+    # Retornar sin contraseña
+    usuario_sin_pass = {
+        "id": usuario.id,
+        "nombre": usuario.nombre,
+        "apellido": usuario.apellido,
+        "edad": usuario.edad,
+        "correo": usuario.correo
     }
 
-# busqueda de usuario por correo por que es un valor unico para la acutlizacion de los datos
+    return {
+        "total": 1,
+        "usuarios": [usuario_sin_pass]
+    }
 
+# ACTUALIZAR USUARIO
 @app.put("/usuarios/{correo}")
-def actualizar_usuario(correo: str, datos: dict):
+def actualizar_usuario(correo: str, datos: dict, db: Session = Depends(get_db)):
     correo_limpio = correo.strip().lower()
 
-    for u in lista_usuarios:
-        if u["correo"].lower() == correo_limpio:
+    # Buscar usuario
+    usuario = db.query(UsuarioDB).filter(UsuarioDB.correo.ilike(correo_limpio)).first()
+    
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
-            if "nombre" in datos:
-                u["nombre"] = datos["nombre"]
+    # Actualizar campos
+    if "nombre" in datos:
+        usuario.nombre = datos["nombre"]
 
-            if "apellido" in datos:
-                u["apellido"] = datos["apellido"]
+    if "apellido" in datos:
+        usuario.apellido = datos["apellido"]
 
-            if "edad" in datos:
-                u["edad"] = datos["edad"]
+    if "edad" in datos:
+        usuario.edad = datos["edad"]
 
-            if "contrasena" in datos:
-                u["contrasena"] = datos["contrasena"]
+    if "contrasena" in datos:
+        usuario.contrasena = datos["contrasena"]
 
-            return {"mensaje": "Usuario actualizado", "usuario": u}
+    db.commit()
+    db.refresh(usuario)
 
-    raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    return {
+        "mensaje": "Usuario actualizado",
+        "usuario": {
+            "id": usuario.id,
+            "nombre": usuario.nombre,
+            "apellido": usuario.apellido,
+            "edad": usuario.edad,
+            "correo": usuario.correo
+        }
+    }
 
-
-#eliminacion de usuario por correo
-
+# ELIMINAR USUARIO
 @app.delete("/usuarios/{correo}")
-def eliminar_usuario(correo: str):
+def eliminar_usuario(correo: str, db: Session = Depends(get_db)):
     correo_limpio = correo.strip().lower()
 
-    for u in lista_usuarios:
-        if u["correo"].lower() == correo_limpio:
-            lista_usuarios.remove(u)
-            return {"mensaje": "Usuario eliminado correctamente"}
+    # Buscar usuario
+    usuario = db.query(UsuarioDB).filter(UsuarioDB.correo.ilike(correo_limpio)).first()
+    
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
-    raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    db.delete(usuario)
+    db.commit()
+
+    return {"mensaje": "Usuario eliminado correctamente"}

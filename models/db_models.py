@@ -1,27 +1,21 @@
 from sqlalchemy import Column, Integer, String, Float, ForeignKey
-from database import Base
+from .database import Base
 
-
+# Tabla usuarios
 class UsuarioDB(Base):
-    # aca es donde se declara el nombre de la tabla que esta en la base de datos
-
     __tablename__ = "usuarios"
-
-    #el index true se declara para indicar que que esta columna se va a utilizar mucho para filtrar o comparar
-
+    
     id = Column(Integer, primary_key=True, index=True)
-
-    # el nullable = False es para indicar que la linea no pude ir vacio
-
     nombre = Column(String, nullable=False)
     apellido = Column(String, nullable=False)
     edad = Column(Integer, nullable=False)
-    # unique = true esto indica que no se puede repetir el registro en ningun lado 
     correo = Column(String, unique=True, nullable=False)
     contrasena = Column(String, nullable=False)
 
+# Tabla series
 class SerieDB(Base):
     __tablename__ = "series"
+    
     id = Column(Integer, primary_key=True, index=True)
     nombre = Column(String, unique=True, nullable=False)
     genero = Column(String, nullable=False)
@@ -29,21 +23,27 @@ class SerieDB(Base):
     anio = Column(Integer, nullable=False)
     descripcion = Column(String, nullable=False)
 
+# Tabla series_vistas
 class SerieVistaDB(Base):
     __tablename__ = "series_vistas"
+    
     id = Column(Integer, primary_key=True, index=True)
     usuario_id = Column(Integer, ForeignKey("usuarios.id"))
     serie_id = Column(Integer, ForeignKey("series.id"))
     calificacion = Column(Float)
 
+# Tabla favoritas
 class FavoritaDB(Base):
     __tablename__ = "favoritas"
+    
     id = Column(Integer, primary_key=True, index=True)
     usuario_id = Column(Integer, ForeignKey("usuarios.id"))
     serie_id = Column(Integer, ForeignKey("series.id"))
 
+# Tabla lista_de_usuarios
 class ListaUsuarioDB(Base):
     __tablename__ = "lista_de_usuarios"
+    
     id = Column(Integer, primary_key=True, index=True)
     usuario_id = Column(Integer, ForeignKey("usuarios.id"))
     nombre_lista = Column(String, nullable=False)
